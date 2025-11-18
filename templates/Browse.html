@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Browse Photos</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: #f9f9f9;
+    }
+
+    .browse-container {
+      width: 100%;
+      padding: 1em;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      # gap: 1.5em;
+      background-color: black;
+      min-height: 100vh;
+    }
+
+    .browse-header-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 0.1em 1em;
+      background-color: #1a1a1a;
+      # border-bottom: 1px solid #ddd;
+    }
+
+.select-header {
+  font-size: 3em;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  padding: 1px 24px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  background-color: #707070;
+  margin: 40px auto 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+    .browse-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .back-button {
+      background: none;
+      border: none;
+      color: #f5deb3;
+      font-weight: bold;
+      font-size: 3em;
+      cursor: pointer;
+      padding: 0.5em 1em;
+      transition: color 0.2s ease;
+    }
+
+    .back-button:hover {
+      color: #007aff;
+    }
+
+.slideshow-select-group {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5em;
+  width: 100%;
+}
+
+.slideshow-select-group select {
+  font-size: 2.4em;
+  padding: 0.4em 1.2em;
+  padding-right: 2.8em;
+  border-radius: 14px;
+  border: 2px solid #ccc;
+  width: auto;
+  max-width: 13em;
+  background-color: #0078D4;
+  color: white;
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 1em center;
+  background-size: 1em;
+}
+
+    .thumbnail-scroll {
+      max-height: calc(100vh - 300px);
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5em;                /* ensure consistent gap between thumbnails */
+      padding: 1em 0;           /* keep vertical padding */
+      # border-top: 1px solid #eee;
+      # border-bottom: 1px solid #eee;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    .thumbnail-scroll img {
+      width: 100%;
+      display: block;
+      scroll-margin-top: 80px;
+      aspect-ratio: 1 / 1;      /* keep thumbnails square */
+      object-fit: cover;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+      background-color: #111;   /* subtle placeholder so empty boxes don't look broken */
+      box-sizing: border-box;
+    }
+
+    .thumbnail-scroll img:hover {
+      transform: scale(1.05);
+    }
+
+    .thumbnail-scroll img.selected {
+      outline: 20px solid #91F527;
+      outline-offset: -12px;
+      box-shadow: 0 0 0 8px rgba(145, 245, 39, 0.3);
+      animation: pulseBorder 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseBorder {
+      0%   { outline-color: #91F527; }
+      50%  { outline-color: #caff6c; }
+      100% { outline-color: #91F527; }
+    }
+
+    .thumbnail-scroll img.delete-select {
+      outline: 20px solid #ff4444;
+      outline-offset: -12px;
+      box-shadow: 0 0 12px rgba(255, 68, 68, 0.4);
+      transform: scale(1.05);
+    }
+
+    .browse-footer-bar {
+      position: sticky;
+      bottom: 0;
+      z-index: 1000;
+      background-color: #4a4a4a;
+      color: wheat;
+      # border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1em;
+      font-size: 2em;
+    }
+
+    .footer-default, .footer-delete {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      align-items: center;
+    }
+
+    .footer-delete {
+      display: none;
+    }
+
+    .trash-button {
+      background: none;
+      border: none;
+      font-size: 2em;
+      cursor: pointer;
+    }
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: white;
+  padding: 2em;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  text-align: center;
+  font-size: 1.4em;
+}
+
+.modal-buttons {
+  margin-top: 1em;
+  display: flex;
+  justify-content: center;
+  gap: 1em;
+}
+
+    .delete-button, .cancel-button {
+      padding: 0.5em 1.5em;
+      font-size: 1.6em;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .delete-button {
+      background-color: #ff4444;
+      color: white;
+    }
+
+    .cancel-button {
+      background-color: #ccc;
+      color: #333;
+    }
+
+    .selected-count {
+      text-align: center;
+      font-size: 1.4em;
+      font-weight: bold;
+    }
+
+    .thumbnail-scroll img.drag-hover {
+      outline: 4px dashed #606060;
+      outline-offset: -4px;
+    }
+
+.photo-count-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2em;
+}
+
+.shuffle-toggle {
+  font-size: 0.7em;       /* smaller text */
+  font-style: italic;     /* lighter feel */
+  font-weight: normal;    /* no heaviness */
+  color: #888888;         /* light gray */
+  margin-top: 0.6em;      /* push it lower below the photo count */
+}
+.shuffle-toggle input {
+  margin-right: 0.4em;
+}
+
+  </style>
+</head>
+<body>
+  <div class="browse-container">
+    <div class="browse-header-bar">
+      <h1 class="select-header">🖼️ Select a Photo or Slideshow</h1>
+      <div class="browse-controls">
+        <button class="back-button" onclick="goBack()">← Back</button>
+        <div class="slideshow-select-group">
+          <select id="slideshow-select" onchange="handleFolderChange()">
+            <option value="" disabled selected hidden>Choose Slideshow</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="thumbnail-scroll" id="thumbnail-scroll" aria-live="polite" aria-busy="true"></div>
+
+    <div class="browse-footer-bar" id="browse-footer">
+  <div class="footer-default" id="footer-default">
+    <!-- Group photo count + weighted shuffle -->
+    <div class="photo-count-group">
+      <div class="photo-count" id="photo-count">0 Photos</div>
+      <label class="shuffle-toggle">
+        <input type="checkbox" id="weighted-shuffle" onchange="toggleWeightedShuffle(this)">
+        Weighted Shuffle
+      </label>
+    </div>
+
+    <div class="sort-group" style="display: flex; align-items: center; gap: 0.5em;">
+      <label for="sort-select" style="font-size: 1em;">Sort By:</label>
+      <select id="sort-select" onchange="handleSort()" style="font-size: 1em; padding: 0.3em 0.8em; border-radius: 6px; border: 1px solid #ccc;">
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="az">A–Z</option>
+        <option value="za">Z–A</option>
+      </select>
+    </div>
+
+    <button id="enter-delete" class="trash-button">🗑️</button>
+  </div>
+
+  <div class="footer-delete" id="footer-delete">
+    <button id="confirm-delete" class="delete-button" disabled>Delete</button>
+    <div class="selected-count">
+      <div id="delete-count">0</div>
+      <div>Selected</div>
+    </div>
+    <button id="exit-delete" class="cancel-button">Cancel</button>
+  </div>
+</div>
+</div>
+<div id="deleteModal" style="display: none;" class="modal-overlay">
+  <div class="modal-box">
+    <p style="margin: 0; font-weight: bold;">Delete Photos</p>
+    <p id="deleteModalText" style="margin: 0;">Are you sure?</p>
+    <div class="modal-buttons">
+      <button class="delete-button" onclick="confirmDelete()">🗑️ Delete</button>
+      <button class="cancel-button" onclick="cancelDelete()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+
+let currentFolder = '';
+let dragEnabled = true;
+let fullImageList = [];
+let deleteMode = false;
+let selectedForDelete = new Set();
+let draggedImg = null;
+let currentSort = 'newest';
+
+// Prioritization parameters - change these in one place if you want different behavior
+const GRID_COLUMNS = 3;            // keep in sync with CSS grid-template-columns
+let rowsPerPage = 3;               // how many rows define the "page" we prioritize
+const neighborRows = 1;            // how many neighbor rows above/below to preload
+const backgroundBatchSize = 100;   // how many images to set src for per background batch
+
+// Basic helpers
+function goBack() { window.location.href = '/'; }
+function qsEncode(obj) { return new URLSearchParams(obj).toString(); }
+
+async function refreshCurrentPreview() {
+  try {
+    const r = await fetch('/symlink-mtime');
+    if (!r.ok) return;
+    const j = await r.json();
+    const m = j.mtime || Date.now();
+  } catch (err) { /* silent */ }
+}
+
+async function postShow(filename) {
+  try {
+    const body = qsEncode({ path: filename });
+    const r = await fetch('/show', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    if (!r.ok) throw new Error('show failed');
+    await refreshCurrentPreview();
+  } catch (err) {
+    console.error('postShow error', err);
+  }
+}
+
+function toggleWeightedShuffle(el) {
+  const enabled = el.checked;
+  fetch('/set-weighted-shuffle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled })
+  }).catch(err => console.error('Failed to set weighted shuffle', err));
+}
+
+
+// Delete flow
+function updateDeleteUI() {
+  document.getElementById('delete-count').textContent = selectedForDelete.size;
+  document.getElementById('confirm-delete').disabled = selectedForDelete.size === 0;
+
+  document.querySelectorAll('.thumbnail-scroll img').forEach(img => {
+    img.classList.remove('delete-select');
+    if (selectedForDelete.has(img.alt)) {
+      img.classList.add('delete-select');
+      img.classList.remove('selected');
+    }
+  });
+}
+
+function cancelDelete() {
+  document.getElementById('deleteModal').style.display = 'none';
+}
+
+function confirmDelete() {
+  const deletePromises = Array.from(selectedForDelete).map(filename => {
+    return fetch('/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `path=${encodeURIComponent(filename)}`
+    });
+  });
+
+  Promise.all(deletePromises).then(() => {
+    selectedForDelete.clear();
+    document.getElementById('footer-default').style.display = 'flex';
+    document.getElementById('footer-delete').style.display = 'none';
+    document.getElementById('deleteModal').style.display = 'none';
+    deleteMode = false;
+    updateDeleteUI();
+    location.reload();
+  });
+}
+
+// Drag & drop helpers (used only for non-main folders)
+function attachDragHandlers(img) {
+  img.addEventListener('dragstart', e => {
+    draggedImg = img;
+    e.dataTransfer.effectAllowed = 'move';
+
+    const clone = img.cloneNode(true);
+    clone.style.opacity = '0.4';
+    clone.style.filter = 'brightness(1.4) drop-shadow(0 0 6px rgba(0,0,0,0.2))';
+    clone.style.position = 'absolute';
+    clone.style.top = '-1000px';
+    clone.style.pointerEvents = 'none';
+    clone.style.zIndex = '9999';
+    clone.style.width = img.offsetWidth + 'px';
+    clone.style.height = img.offsetHeight + 'px';
+    document.body.appendChild(clone);
+    e.dataTransfer.setDragImage(clone, clone.width / 2, clone.height / 2);
+
+    img.addEventListener('dragend', () => {
+      if (clone && clone.parentNode) document.body.removeChild(clone);
+    }, { once: true });
+  });
+
+  img.addEventListener('dragover', e => e.preventDefault());
+  img.addEventListener('drop', e => {
+    e.preventDefault();
+    if (draggedImg && draggedImg !== img) {
+      const container = img.parentNode;
+      container.insertBefore(draggedImg, img.nextSibling);
+      scheduleSaveOrder();
+    }
+    img.classList.remove('drag-hover');
+  });
+
+  img.addEventListener('dragenter', () => img.classList.add('drag-hover'));
+  img.addEventListener('dragleave', () => img.classList.remove('drag-hover'));
+}
+
+let saveOrderTimer = null;
+function scheduleSaveOrder() {
+  if (saveOrderTimer) clearTimeout(saveOrderTimer);
+  saveOrderTimer = setTimeout(() => {
+    const domOrder = Array.from(document.querySelectorAll('.thumbnail-scroll img'))
+      .map(im => im.getAttribute('data-filename'));
+    const untouched = fullImageList.filter(f => !domOrder.includes(f));
+    const orderedFilenames = domOrder.concat(untouched);
+
+    fetch('/save-custom-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        folder: currentFolder,
+        order: orderedFilenames
+      })
+    });
+  }, 1200);
+}
+
+// Utility: fetch current filename (cached)
+let cachedCurrentFilename = null;
+async function getCurrentFilename() {
+  if (cachedCurrentFilename !== null) return cachedCurrentFilename;
+  try {
+    const res = await fetch(`/static/current_filename.txt?v=${Date.now()}`);
+    if (!res.ok) return '';
+    const txt = (await res.text()).trim();
+    cachedCurrentFilename = txt;
+    return txt;
+  } catch (e) {
+    console.warn('Failed to fetch current_filename.txt', e);
+    return '';
+  }
+}
+
+// Geometry helpers
+function getGridGap(container) {
+  const style = getComputedStyle(container);
+  return parseFloat(style.rowGap || style.gap || 0) || 0;
+}
+
+function computeThumbnailSize(container) {
+  const gap = getGridGap(container);
+  const containerWidth = container.clientWidth;
+  const totalGapWidth = (GRID_COLUMNS - 1) * gap;
+  const itemWidth = (containerWidth - totalGapWidth) / GRID_COLUMNS;
+  const itemHeight = itemWidth;               // aspect-ratio 1/1 => height equals width
+  const rowHeight = itemHeight + gap;        // include vertical gap when stepping rows
+  return { itemWidth, itemHeight, rowHeight, gap };
+}
+
+function computeTargetScrollTopFromIndex(index, container, desiredRowForSlot = 1) {
+  const { rowHeight } = computeThumbnailSize(container);
+  const targetRow = Math.floor(index / GRID_COLUMNS);
+  let targetScrollTop = Math.max(0, targetRow * rowHeight - (desiredRowForSlot * rowHeight));
+  const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+  if (targetScrollTop > maxScrollTop) targetScrollTop = maxScrollTop;
+  if (targetScrollTop < 0) targetScrollTop = 0;
+  return targetScrollTop;
+}
+
+// Background filling: set src on remaining images in batches to avoid jank
+function backgroundFillRemainingImages(container) {
+  const imgs = Array.from(container.querySelectorAll('img[data-src]')).filter(img => !img.src);
+  let i = 0;
+  function step() {
+    const end = Math.min(i + backgroundBatchSize, imgs.length);
+    for (; i < end; i++) {
+      const img = imgs[i];
+      img.src = img.getAttribute('data-src');
+      img.decoding = 'async';
+      if (!img.loading) img.loading = 'lazy';
+    }
+    if (i < imgs.length) {
+      requestAnimationFrame(step);
+    } else {
+      container.setAttribute('aria-busy', 'false');
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+// Main loader: create placeholders in DOM order and eagerly load priority window
+async function loadThumbnailsAllBatched(sort = 'newest', batchSize = 200) {
+  const container = document.getElementById('thumbnail-scroll');
+  container.innerHTML = '<div class="spinner">Loading thumbnails…</div>';
+  container.setAttribute('aria-busy', 'true');
+  document.getElementById('photo-count').textContent = '';
+
+  try {
+    const resp = await fetch('/api/thumbnails?sort=' + encodeURIComponent(sort));
+    if (!resp.ok) throw new Error('Failed to fetch thumbnails');
+    const data = await resp.json();
+
+    currentFolder = data.folder || currentFolder;
+    fullImageList = data.images || [];
+    const total = data.total || fullImageList.length;
+    document.getElementById('photo-count').textContent = `${total} Photos`;
+
+    // Prefer server-provided current/current_index when available; fallback to fetching the static file.
+    const serverCurrent = (typeof data.current === 'string' && data.current) ? data.current : '';
+    const serverIndex = (typeof data.current_index === 'number' && data.current_index >= 0) ? data.current_index : -1;
+
+    // If server provided an index, use it; otherwise try serverCurrent; otherwise fall back to fetching the file.
+    let currentFilename = '';
+    let currentIndex = -1;
+    if (serverIndex >= 0) {
+      currentIndex = serverIndex;
+      currentFilename = fullImageList[currentIndex] || '';
+    } else if (serverCurrent) {
+      currentFilename = serverCurrent;
+      currentIndex = fullImageList.indexOf(currentFilename);
+    } else {
+      // fallback: request static/current_filename.txt (retained for compatibility)
+      currentFilename = await getCurrentFilename();
+      currentIndex = currentFilename ? fullImageList.indexOf(currentFilename) : -1;
+    }
+
+    // compute priority window
+    const { itemHeight, rowHeight } = computeThumbnailSize(container);
+    const visibleRows = Math.max(1, Math.floor(container.clientHeight / rowHeight) || rowsPerPage);
+    const effectiveRowsPerPage = visibleRows || rowsPerPage;
+    const itemsPerPage = GRID_COLUMNS * effectiveRowsPerPage;
+
+    let priorityStart = 0, priorityEnd = Math.min(fullImageList.length - 1, itemsPerPage - 1);
+    if (currentIndex >= 0) {
+      const pageIndex = Math.floor(currentIndex / itemsPerPage);
+      const pageStart = pageIndex * itemsPerPage;
+      const pageEnd = Math.min(fullImageList.length - 1, pageStart + itemsPerPage - 1);
+      const margin = neighborRows * GRID_COLUMNS;
+      priorityStart = Math.max(0, pageStart - margin);
+      priorityEnd = Math.min(fullImageList.length - 1, pageEnd + margin);
+    } else {
+      priorityStart = 0;
+      priorityEnd = Math.min(fullImageList.length - 1, itemsPerPage - 1);
+    }
+
+    // Build DOM placeholders in original order, but only set src for priority indices.
+    container.innerHTML = '';
+    let i = 0;
+    const frag = document.createDocumentFragment();
+
+    function appendBatch() {
+      const end = Math.min(i + batchSize, fullImageList.length);
+      for (; i < end; i++) {
+        const filename = fullImageList[i];
+        const img = document.createElement('img');
+
+        img.alt = filename;
+        img.setAttribute('data-filename', filename);
+        img.setAttribute('data-src', `/thumbs/${encodeURIComponent(currentFolder)}/${encodeURIComponent(filename)}?v=${Date.now()}`);
+        img.draggable = (currentFolder !== 'main');
+
+        // onclick behavior (preserve)
+        img.onclick = () => {
+          if (deleteMode) {
+            if (selectedForDelete.has(filename)) selectedForDelete.delete(filename);
+            else selectedForDelete.add(filename);
+            updateDeleteUI();
+          } else {
+            document.querySelectorAll('.thumbnail-scroll img').forEach(el => el.classList.remove('selected'));
+            img.classList.add('selected');
+            postShow(filename);
+          }
+        };
+
+        if (currentFolder !== 'main') attachDragHandlers(img);
+
+        // priority loading
+        if (i >= priorityStart && i <= priorityEnd) {
+          img.src = img.getAttribute('data-src');
+          img.loading = 'eager';
+          if (filename === currentFilename) {
+            img.classList.add('selected');
+            try { new Image().src = img.src; } catch (e) {}
+          }
+        } else {
+          img.loading = 'lazy';
+          img.decoding = 'async';
+        }
+
+        frag.appendChild(img);
+      }
+
+      if (i < fullImageList.length) {
+        requestAnimationFrame(appendBatch);
+      } else {
+        container.appendChild(frag);
+
+        // Wait for a frame so layout is stable, then compute and apply scroll
+        requestAnimationFrame(() => {
+          if (currentIndex >= 0) {
+            const desiredRowForSlot = 1; // second row (row index 1) to match previous behavior
+            const scrollTop = computeTargetScrollTopFromIndex(currentIndex, container, desiredRowForSlot);
+            container.scrollTo({ top: scrollTop, behavior: 'auto' });
+            setTimeout(() => container.scrollTo({ top: scrollTop, behavior: 'smooth' }), 50);
+          }
+          // Start background fill after we've positioned the user
+          backgroundFillRemainingImages(container);
+        });
+      }
+    }
+
+    appendBatch();
+  } catch (err) {
+    container.innerHTML = `<div class="spinner">Failed to load thumbnails: ${err.message}</div>`;
+    container.setAttribute('aria-busy', 'false');
+    console.error('loadThumbnailsAllBatched error', err);
+  }
+}
+
+// handlers triggered by UI
+function handleSort() {
+  const sortKey = document.getElementById('sort-select').value;
+  currentSort = sortKey;
+  document.getElementById('thumbnail-scroll').innerHTML = '';
+  loadThumbnailsAllBatched(currentSort, 100);
+}
+
+function handleFolderChange() {
+  const selected = document.getElementById('slideshow-select').value;
+  dragEnabled = (selected !== 'main');
+
+  // 🔥 Show weighted shuffle ONLY for "main"
+  const wsGroup = document.querySelector('.shuffle-toggle');
+  wsGroup.style.display = (selected === 'main') ? 'flex' : 'none';
+
+  const sortSelect = document.getElementById('sort-select');
+  sortSelect.innerHTML = '';
+
+  const options = [
+    { value: 'newest', label: 'Newest' },
+    { value: 'oldest', label: 'Oldest' },
+    { value: 'az', label: 'A–Z' },
+    { value: 'za', label: 'Z–A' }
+  ];
+
+  if (selected === 'main') {
+    options.unshift({ value: 'random', label: 'Random' });
+  } else {
+    options.unshift({ value: 'custom', label: 'Custom' });
+  }
+
+  options.forEach(opt => {
+    const option = document.createElement('option');
+    option.value = opt.value;
+    option.textContent = opt.label;
+    sortSelect.appendChild(option);
+  });
+
+  sortSelect.value = (selected === 'main') ? 'random' : 'custom';
+  currentSort = sortSelect.value;
+
+  fetch('/select_folder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `folder=${encodeURIComponent(selected)}`
+  }).then(() => {
+    selectedForDelete.clear();
+    document.getElementById('thumbnail-scroll').innerHTML = '';
+    currentFolder = selected;
+    cachedCurrentFilename = null;
+    loadThumbnailsAllBatched(currentSort, 100);
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  Promise.all([
+    fetch('/list-slideshows').then(res => res.json()),
+    fetch('/config').then(res => res.json())
+  ]).then(([folders, config]) => {
+    const select = document.getElementById('slideshow-select');
+    const sortSelect = document.getElementById('sort-select');
+    const current = config.current_folder || '';
+
+    // populate slideshow dropdown
+    folders.forEach(name => {
+      const friendlyName = name.replace(/_/g, ' ').replace(/\w\S*/g, word =>
+        word.charAt(0).toUpperCase() + word.substring(1).toLowerCase()
+      );
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = friendlyName;
+      select.appendChild(option);
+    });
+
+    if (current) select.value = current;
+    currentFolder = current;
+
+    // 🔥 Show/hide weighted shuffle on initial load
+    const wsGroup = document.querySelector('.shuffle-toggle');
+    wsGroup.style.display = (current === 'main') ? 'flex' : 'none';
+
+    // rebuild sort dropdown
+    sortSelect.innerHTML = '';
+    const options = [
+      { value: 'newest', label: 'Newest' },
+      { value: 'oldest', label: 'Oldest' },
+      { value: 'az', label: 'A–Z' },
+      { value: 'za', label: 'Z–A' },
+      { value: 'random', label: 'Random' }
+    ];
+    if (current !== 'main') options.unshift({ value: 'custom', label: 'Custom' });
+
+    options.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.label;
+      sortSelect.appendChild(option);
+    });
+
+    sortSelect.value = (current === 'main') ? 'random' : 'custom';
+    currentSort = sortSelect.value;
+
+    // initialize weighted shuffle checkbox from config
+    const wsToggle = document.getElementById('weighted-shuffle');
+    if (wsToggle) {
+      wsToggle.checked = !!config.weighted_shuffle;
+    }
+
+    // hook buttons
+    document.getElementById('enter-delete').addEventListener('click', () => {
+      deleteMode = true;
+      selectedForDelete.clear();
+      document.getElementById('footer-default').style.display = 'flex';
+      document.getElementById('footer-delete').style.display = 'flex';
+      document.getElementById('footer-default').style.display = 'none';
+      updateDeleteUI();
+    });
+
+    document.getElementById('exit-delete').addEventListener('click', () => {
+      deleteMode = false;
+      selectedForDelete.clear();
+      document.getElementById('footer-default').style.display = 'flex';
+      document.getElementById('footer-delete').style.display = 'none';
+      updateDeleteUI();
+    });
+
+    document.getElementById('confirm-delete').addEventListener('click', () => {
+      if (selectedForDelete.size === 0) return;
+      document.getElementById('deleteModalText').textContent =
+        `Delete ${selectedForDelete.size} items? This cannot be undone.`;
+      document.getElementById('deleteModal').style.display = 'flex';
+    });
+
+    // initial load
+    loadThumbnailsAllBatched(currentSort, 100);
+
+    // Recompute rowsPerPage on resize
+    const container = document.getElementById('thumbnail-scroll');
+    const resizeObserver = new ResizeObserver(() => {
+      const { rowHeight } = computeThumbnailSize(container);
+      rowsPerPage = Math.max(1, Math.floor(container.clientHeight / rowHeight));
+    });
+    resizeObserver.observe(container);
+  }).catch(err => {
+    console.error('Failed to initialize Browse:', err);
+  });
+
+  setInterval(refreshCurrentPreview, 5000);
+});
+</script>
+</body>
+</html>
