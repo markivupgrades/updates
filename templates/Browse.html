@@ -144,37 +144,54 @@
       transform: scale(1.05);
     }
 
-    .browse-footer-bar {
-      position: sticky;
-      bottom: 0;
-      z-index: 1000;
-      background-color: #4a4a4a;
-      color: wheat;
-      # border-top: 1px solid #ddd;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1em;
-      font-size: 2em;
-    }
+.browse-footer-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1000;
+  background-color: #4a4a4a;
+  color: wheat;
+  display: flex;
+  justify-content: space-between;  /* ⬅ back to your original */
+  align-items: center;
+  padding: 1em;
+  font-size: 2em;
+  padding-right: 1em; /* matches left padding */
+}
 
-    .footer-default, .footer-delete {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      align-items: center;
-    }
+.footer-default {
+  display: contents;
+}
 
-    .footer-delete {
-      display: none;
-    }
+.footer-delete {
+  display: none;
+}
 
-    .trash-button {
-      background: none;
-      border: none;
-      font-size: 2em;
-      cursor: pointer;
-    }
+.trash-button {
+  background: none;
+  border: none;
+  font-size: 2em;
+  cursor: pointer;
+  margin-right: -0.75em; /* fine‑tune */
+}
+
+.sort-group {
+  transform: translateX(0.25em); /* small nudge right */
+}
+
+
+/* Countdown spacing */
+.footer-countdown {
+  font-size: 1em;
+  color: #fff3c6;
+  background: rgba(0,0,0,0.12);
+  padding: 0.15em 0.5em;
+  border-radius: 6px;
+  min-width: 42px;
+  text-align: center;
+  box-sizing: border-box;
+  /* margin-left: 2.5em;  ⬅ remove this */
+  transform: translateX(0.75em); /* ⬅ same visual shift, no flex layout impact */
+}
 
 .modal-overlay {
   position: fixed;
@@ -288,6 +305,9 @@
         <option value="za">Z–A</option>
       </select>
     </div>
+
+        <!-- Countdown placed here (left of trash button) so it remains visible while scrolling -->
+        <div id="footer-countdown" class="footer-countdown" aria-live="polite" title="Time left for current slide">--</div>
 
     <button id="enter-delete" class="trash-button">🗑️</button>
   </div>
@@ -805,6 +825,62 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   setInterval(refreshCurrentPreview, 5000);
+
+ // --------------------------
+  // Minimal footer countdown
+  // --------------------------
+  (function(){
+    const el = document.getElementById('footer-countdown');
+    if (!el) return;
+
+    let delaySeconds = null;   // slideshow length in seconds (from /config)
+    async function fetchConfigOnce() {
+      try {
+        const res = await fetch('/config');
+        if (!res.ok) return;
+        const cfg = await res.json();
+        if (cfg && typeof cfg.delay === 'number') delaySeconds = cfg.delay;
+      } catch (e) { /* ignore */ }
+    }
+
+    async function fetchMtime() {
+      try {
+        const res = await fetch('/delay-mtime');
+        if (!res.ok) return null;
+        const j = await res.json();
+        if (j == null || j.mtime == null) return null;
+        let m = Number(j.mtime);
+        // server normally returns seconds; if we somehow get ms, normalize:
+        if (m > 1e12) m = m / 1000;
+        return m; // seconds
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function updateOnce() {
+      if (delaySeconds === null) await fetchConfigOnce();
+
+      const mtime = await fetchMtime();
+      if (!mtime || !delaySeconds) {
+        el.textContent = '--';
+        return;
+      }
+
+      const nowSec = Date.now() / 1000;
+      const remaining = Math.max(0, Math.round(delaySeconds - (nowSec - mtime)));
+      el.innerHTML = `Next: ${remaining}s`;
+    }
+
+    fetchConfigOnce().finally(() => {
+      updateOnce();
+      setInterval(async () => {
+        if (Math.random() < 0.02) await fetchConfigOnce();
+        await updateOnce();
+      }, 1000);
+    });
+  })();
+  // --------------------------
 });
 </script>
 </body>
