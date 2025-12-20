@@ -361,6 +361,15 @@ def symlink_mtime():
         app.logger.warning(f"Failed to read symlink mtime: {e}")
         return jsonify({'mtime': None}), 500
 
+@app.route('/delay-mtime')
+def delay_mtime():
+    flag_path = os.path.join(BASE_DIR, 'delay_updated.flag')
+    try:
+        mtime = os.path.getmtime(flag_path)
+        return jsonify({'mtime': mtime})
+    except Exception as e:
+        app.logger.warning(f"Failed to read delay flag mtime: {e}")
+        return jsonify({'mtime': None}), 500
 
 # Symlink logic
 def update_symlink(image_path):
