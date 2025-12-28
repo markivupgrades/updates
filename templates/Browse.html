@@ -764,10 +764,15 @@ window.addEventListener('DOMContentLoaded', () => {
       { value: 'newest', label: 'Newest' },
       { value: 'oldest', label: 'Oldest' },
       { value: 'az', label: 'A–Z' },
-      { value: 'za', label: 'Z–A' },
-      { value: 'random', label: 'Random' }
+      { value: 'za', label: 'Z–A' }
     ];
-    if (current !== 'main') options.unshift({ value: 'custom', label: 'Custom' });
+
+    // Only main gets Random; others get Custom
+    if (current === 'main') {
+      options.unshift({ value: 'random', label: 'Random' });
+    } else {
+      options.unshift({ value: 'custom', label: 'Custom' });
+    }
 
     options.forEach(opt => {
       const option = document.createElement('option');
@@ -778,6 +783,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     sortSelect.value = (current === 'main') ? 'random' : 'custom';
     currentSort = sortSelect.value;
+
 
     // initialize weighted shuffle checkbox from config
     const wsToggle = document.getElementById('weighted-shuffle');
