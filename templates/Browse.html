@@ -680,6 +680,7 @@ async function loadThumbnailsAllBatched(sort = 'newest', batchSize = 200) {
 function handleSort() {
   const sortKey = document.getElementById('sort-select').value;
   currentSort = sortKey;
+  localStorage.setItem('browseSort', sortKey);
   document.getElementById('thumbnail-scroll').innerHTML = '';
   loadThumbnailsAllBatched(currentSort, 100);
 }
@@ -715,7 +716,26 @@ function handleFolderChange() {
     sortSelect.appendChild(option);
   });
 
-  sortSelect.value = (selected === 'main') ? 'random' : 'custom';
+  const savedSort = localStorage.getItem('browseSort');
+
+  let found = false;
+  for (let i = 0; i < sortSelect.options.length; i++) {
+    if (sortSelect.options[i].value === savedSort) {
+      found = true;
+      break;
+    }
+  }
+
+  if (savedSort && found) {
+    sortSelect.value = savedSort;
+  } else {
+    if (selected === 'main') {
+      sortSelect.value = 'random';
+    } else {
+      sortSelect.value = 'custom';
+    }
+  }
+
   currentSort = sortSelect.value;
 
   fetch('/select_folder', {
@@ -781,7 +801,26 @@ window.addEventListener('DOMContentLoaded', () => {
       sortSelect.appendChild(option);
     });
 
-    sortSelect.value = (current === 'main') ? 'random' : 'custom';
+    const savedSort = localStorage.getItem('browseSort');
+
+    let found = false;
+    for (let i = 0; i < sortSelect.options.length; i++) {
+      if (sortSelect.options[i].value === savedSort) {
+        found = true;
+        break;
+      }
+    }
+
+    if (savedSort && found) {
+      sortSelect.value = savedSort;
+    } else {
+      if (selected === 'main') {
+        sortSelect.value = 'random';
+      } else {
+        sortSelect.value = 'custom';
+      }
+    }
+
     currentSort = sortSelect.value;
 
 
