@@ -814,7 +814,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (savedSort && found) {
       sortSelect.value = savedSort;
     } else {
-      if (selected === 'main') {
+      if (current === 'main') {
         sortSelect.value = 'random';
       } else {
         sortSelect.value = 'custom';
